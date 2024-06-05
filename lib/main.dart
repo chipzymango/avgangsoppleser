@@ -15,65 +15,39 @@ class MyApp extends StatelessWidget {
             scaffoldBackgroundColor: Color.fromARGB(255, 240, 255, 240)),
         home: Scaffold(
             appBar: AppBar(
-              title: const Text("Title!"),
-              backgroundColor: Color.fromARGB(255, 30, 117, 24),
-              foregroundColor: Color.fromARGB(255, 230, 255, 230),
+              title: const Text("Reise Oppleseren",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+              backgroundColor: Color.fromARGB(255, 0, 63, 14),
+              foregroundColor: Colors.white,
             ),
             body: Column(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Container(
-                        margin: const EdgeInsets.all(5),
-                        color: const Color.fromARGB(255, 255, 0, 0),
-                        child: const Text("1")),
-                    Container(
-                        margin: const EdgeInsets.all(5),
-                        color: const Color.fromARGB(255, 0, 255, 0),
-                        child: const Text("2")),
-                    Container(
-                        margin: const EdgeInsets.all(5),
-                        color: const Color.fromARGB(255, 0, 0, 255),
-                        child: const Text("3"))
-                  ],
-                ),
+                Container(
+                    height: 300,
+                    child: const Text("Hvor skal du reise?",
+                        style: TextStyle(
+                            fontSize: 30, fontWeight: FontWeight.bold))),
                 Expanded(
                   child: Container(), // container to take the available space
                 ),
                 Container(
-                  child: MaterialButton(
-                    onPressed: () {
-                      print("Pressed!");
-                    },
-                    color: Colors.red,
-                    shape: CircleBorder()
-                  ),
-                  width: 80,
-                  height: 80,
-                  margin: const EdgeInsets.only(bottom: 20)
-
-                )
+                    height: 50,
+                    child: const Text(
+                        'Eks: "Jeg skal reise fra Økern til Sinsen T"',
+                        style: TextStyle(fontSize: 20, color: Colors.grey))),
+                Container(
+                    width: 80,
+                    height: 80,
+                    margin: const EdgeInsets.only(bottom: 20),
+                    child: MaterialButton(
+                        onPressed: () {
+                          print("Pressed!");
+                        },
+                        color: Colors.red,
+                        shape: const CircleBorder(),
+                        child: const Icon(Icons.mic,
+                            size: 32, color: Colors.white)))
               ],
-            )
-
-            /*body: Center(
-          child: Container(
-            child: const Text("Hi!"),            
-            margin: const EdgeInsets.all(15),
-            padding: const EdgeInsets.all(10),
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: Color.fromARGB(255, 200, 200, 255),
-              border: Border.all(
-                color: Color.fromARGB(255, 0, 0, 0),
-                width: 5)
-            ),
-            
-          ),
-        )*/
-            ));
+            )));
   }
 }
