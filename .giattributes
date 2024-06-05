@@ -1,0 +1,17 @@
+# Handle all files as text and ensure consistent line endings
+* text=auto
+
+# Mark binary files to prevent line ending conversion
+*.jpg binary
+*.png binary
+*.gif binary
+*.exe binary
+*.dll binary
+
+# Specify LF for specific text files
+*.sh text eol=lf
+*.yml text eol=lf
+*.md text eol=lf
+
+# Specify CRLF for Windows batch files
+*.bat text eol=crlf
