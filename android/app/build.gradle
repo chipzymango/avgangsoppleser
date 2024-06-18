@@ -42,6 +42,7 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
+        ext.kotlin_version = '1.8.22'
     }
 
     buildTypes {
