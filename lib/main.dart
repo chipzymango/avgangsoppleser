@@ -30,9 +30,8 @@ class SpeechScreen extends StatefulWidget {
 
 class _SpeechScreenState extends State<SpeechScreen> {
   late stt.SpeechToText _speech;
-  final bool _isListening = false;
-  final String _text = "Trykk på knappen for å snakke";
-  final double _confidence = 1.0;
+  bool _isListening = false;
+  String _text = "[Ord som blir sagt vises her]";
 
   @override
   void initState() {
@@ -75,16 +74,45 @@ class _SpeechScreenState extends State<SpeechScreen> {
               )
             )
           ),
+          Expanded(
+            child: Text(
+              _text
+            )
+          ),
 
           Container(
             padding: const EdgeInsets.fromLTRB(0,0,0,40.0),
             child: FloatingActionButton(
-              onPressed: () {},
+              onPressed: _listen ,
               backgroundColor: Colors.green,
               child: Icon(_isListening ? Icons.mic : Icons.mic_none),
             ),
+            
           ),
       ])
     );
+  }
+
+  // this is to be called when microphone button is pressed
+  void _listen() async {
+    if (!_isListening) { 
+      bool available = await _speech.initialize( 
+        onStatus: (val) => print('onStatus:$val'),
+        onError: (val) => print('onStatus: $val'),
+      ); // waiting for initialization of speech recognition services
+
+      if (available) {
+        setState(() => _isListening = true);
+        _speech.listen(
+          onResult: (val) => setState(() {
+            _text = val.recognizedWords; // each recognized word in text
+          })
+        ); // starting speech to text session
+      }
+    }
+    else {
+      setState(() => _isListening = false);
+      _speech.stop();
+    }
   }
 }
