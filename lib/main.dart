@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'helpers.dart';
+import 'apiservice.dart';
 
 List<String> travelKeywords = [
   "fra", "til", "ved", "gjennom", "mot", "via", "forbi", "mellom", "langs",
@@ -123,9 +124,14 @@ class _SpeechScreenState extends State<SpeechScreen> {
       setState(() => _isListening = false);
       _handleSpeech(_text);
       _speech.stop();
-      
-      
     }
+  }
+
+  Future<void> updateStopPlace(String stopPlace) async {
+    String stopPlaceId = await fetchStopPlaceId(stopPlace);
+    setState(() {
+      _text = stopPlaceId;
+    });
   }
 
   void _handleSpeech(String text) {
@@ -134,20 +140,13 @@ class _SpeechScreenState extends State<SpeechScreen> {
     
     // check for numbersr
     String number = findDigits(text);
-    String destination = "";
 
     // check if it is a bus station name
     if (text.split(' ')[0].toLowerCase() == "når") {
       // anticipating the speech begins with "when", it'll perform a search to find departure times in a stop place
-      destination = text.split(' ')[text.split(' ').length-1].toLowerCase();
+      String stopPlace = text.split(' ')[text.split(' ').length-1].toLowerCase();
+
+      updateStopPlace(stopPlace);
     }
-
-    print("Destination: $destination");
-
-    
-
-    setState(() {
-      _text = "${keywords.length.toString()} words found: \n ${keywords.join('\n')}\n Numbers found are: $number";
-    });
   }
 }
