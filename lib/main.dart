@@ -1,5 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'helpers.dart';
+
+List<String> travelKeywords = [
+  "fra", "til", "ved", "gjennom", "mot", "via", "forbi", "mellom", "langs",
+    "ombord", "på", "av", "med", "utenfor", "innom", "over", "under", "innenfor",
+    "reise", "tur", "retning", "destinasjon", "stopp", "holdeplass", "stasjon",
+    "rute", "linje", "buss", "trikk", "t-bane", "tog", "båt", "fly", "transport",
+    "skyss", "avgang", "ankomst", "reisemål", "sjåfør", "passasjer"
+];
 
 void main() {
   // program starts executing here
@@ -31,7 +40,7 @@ class SpeechScreen extends StatefulWidget {
 class _SpeechScreenState extends State<SpeechScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  String _text = "[Ord som blir sagt vises her]";
+  String _text = "Når kommer 25 bussen på tonsenhagen?";//"Jeg skal ta 25 bussen fra Bjerke til Årvoll";//"[Ord som blir sagt vises her]";
 
   @override
   void initState() {
@@ -66,7 +75,7 @@ class _SpeechScreenState extends State<SpeechScreen> {
           Expanded(
             child: Container(
               child: const Text(
-                "Trykk på knappen for å snakke",
+                "Trykk på knappen for å snakke\nF.eks. 'Når kommer 25 bussen på Tonsenhagen?'",
                 style: TextStyle(
                   fontSize: 20, 
                   color: Colors.grey
@@ -112,7 +121,33 @@ class _SpeechScreenState extends State<SpeechScreen> {
     }
     else {
       setState(() => _isListening = false);
+      _handleSpeech(_text);
       _speech.stop();
+      
+      
     }
+  }
+
+  void _handleSpeech(String text) {
+    // check for keywords
+    List<String> keywords = findTravelRelatedWord(text.split(' '));
+    
+    // check for numbersr
+    String number = findDigits(text);
+    String destination = "";
+
+    // check if it is a bus station name
+    if (text.split(' ')[0].toLowerCase() == "når") {
+      // anticipating the speech begins with "when", it'll perform a search to find departure times in a stop place
+      destination = text.split(' ')[text.split(' ').length-1].toLowerCase();
+    }
+
+    print("Destination: $destination");
+
+    
+
+    setState(() {
+      _text = "${keywords.length.toString()} words found: \n ${keywords.join('\n')}\n Numbers found are: $number";
+    });
   }
 }
