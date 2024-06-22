@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'helpers.dart';
 import 'apiservice.dart';
+import 'format_time.dart';
 
 List<String> travelKeywords = [
   "fra", "til", "ved", "gjennom", "mot", "via", "forbi", "mellom", "langs",
@@ -41,7 +42,7 @@ class SpeechScreen extends StatefulWidget {
 class _SpeechScreenState extends State<SpeechScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  String _text = "Når kommer 31 bussen på tonsenhagen?";//"Jeg skal ta 25 bussen fra Bjerke til Årvoll";//"[Ord som blir sagt vises her]";
+  String _text = "Når kommer 60 bussen på kroklia?";//"Jeg skal ta 25 bussen fra Bjerke til Årvoll";//"[Ord som blir sagt vises her]";
 
   @override
   void initState() {
@@ -129,9 +130,9 @@ class _SpeechScreenState extends State<SpeechScreen> {
 
   Future<void> updateStopPlace(String stopPlace) async {
     String stopPlaceId = await fetchStopPlaceId(stopPlace);
-    Map<String, String> stopPlaceProperties = await getStopPlaceProperties(stopPlaceId);
+    Map<String, String?> stopPlaceProperties = await getStopPlaceProperties(stopPlaceId);
     setState(() {
-      _text = "Stop Place Name: ${stopPlaceProperties["stopPlaceName"]}\nNearest Arrival Time: ${stopPlaceProperties["nearestArrivalTime"]}";
+      _text = "Stop Place Name: ${stopPlaceProperties["stopPlaceName"]}\nNearest Arrival Time: ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
     });
   }
 

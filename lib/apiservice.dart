@@ -1,7 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-
 Future<String> fetchStopPlaceId(String query) async {
 
     String baseURL = "https://api.entur.io/geocoder/v1/autocomplete?";
@@ -34,7 +33,7 @@ Future<String> fetchStopPlaceId(String query) async {
     }
 }
 
-Future<Map<String, String>> getStopPlaceProperties(String stopPlaceId) async {
+Future<Map<String, String?>> getStopPlaceProperties(String stopPlaceId) async {
 
   String requestURL = "https://api.entur.io/journey-planner/v3/graphql";
 
@@ -77,10 +76,10 @@ Future<Map<String, String>> getStopPlaceProperties(String stopPlaceId) async {
     int amountOfDepartures = results["data"]["stopPlace"]["estimatedCalls"].length;
     print("${amountOfDepartures.toString()} departures found.");
 
-    String stopPlaceName = results["data"]["stopPlace"]["name"];
-    String expectedArrivalTime = results["data"]["stopPlace"]["estimatedCalls"][0]["expectedArrivalTime"];
+    String? stopPlaceName = results["data"]["stopPlace"]["name"];
+    String? expectedArrivalTime = results["data"]["stopPlace"]["estimatedCalls"][0]["expectedArrivalTime"];
 
-    Map<String, String> stopPlaceProperties = {
+    Map<String, String?> stopPlaceProperties = {
       "stopPlaceName": stopPlaceName,
       "nearestArrivalTime": expectedArrivalTime
     };
