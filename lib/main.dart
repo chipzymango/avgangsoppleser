@@ -41,7 +41,7 @@ class SpeechScreen extends StatefulWidget {
 class _SpeechScreenState extends State<SpeechScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  String _text = "Når kommer 25 bussen på tonsenhagen?";//"Jeg skal ta 25 bussen fra Bjerke til Årvoll";//"[Ord som blir sagt vises her]";
+  String _text = "Når kommer 31 bussen på tonsenhagen?";//"Jeg skal ta 25 bussen fra Bjerke til Årvoll";//"[Ord som blir sagt vises her]";
 
   @override
   void initState() {
@@ -76,7 +76,7 @@ class _SpeechScreenState extends State<SpeechScreen> {
           Expanded(
             child: Container(
               child: const Text(
-                "Trykk på knappen for å snakke\nF.eks. 'Når kommer 25 bussen på Tonsenhagen?'",
+                "Trykk på knappen for å snakke\nF.eks. 'Når kommer 31 bussen på Tonsenhagen?'",
                 style: TextStyle(
                   fontSize: 20, 
                   color: Colors.grey
@@ -129,8 +129,9 @@ class _SpeechScreenState extends State<SpeechScreen> {
 
   Future<void> updateStopPlace(String stopPlace) async {
     String stopPlaceId = await fetchStopPlaceId(stopPlace);
+    Map<String, String> stopPlaceProperties = await getStopPlaceProperties(stopPlaceId);
     setState(() {
-      _text = stopPlaceId;
+      _text = "Stop Place Name: ${stopPlaceProperties["stopPlaceName"]}\nNearest Arrival Time: ${stopPlaceProperties["nearestArrivalTime"]}";
     });
   }
 
