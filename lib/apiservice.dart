@@ -24,11 +24,9 @@ Future<String> fetchStopPlaceId(String query) async {
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> results = json.decode(response.body);
-      print("response 1 body: \n${response.body}");
+      //print("response 1 body: \n${response.body}");
       String stopPlaceId = results["features"][0]["properties"]["id"];
-      String stopPlaceName = results["features"][0]["properties"]["name"];
-      print("stop Place Name: $stopPlaceName");
-
+      
       return stopPlaceId;
     }
     else 

@@ -34,7 +34,7 @@ class SpeechScreen extends StatefulWidget {
 class _SpeechScreenState extends State<SpeechScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  String _text = "på bjerke, når kommer 31 bussen??";//"Når kommer 60 bussen på kroklia?";//"Jeg skal ta 25 bussen fra Bjerke til Årvoll";//"[Ord som blir sagt vises her]";
+  String _text = "Når kommer 60 bussen på kroklia";//"Når kommer 60 bussen på kroklia?";//"Jeg skal ta 25 bussen fra Bjerke til Årvoll";//"[Ord som blir sagt vises her]";
 
   @override
   void initState() {
@@ -129,12 +129,14 @@ class _SpeechScreenState extends State<SpeechScreen> {
     else {
       if (routeNumber != null) {
         setState(() {
-        _text = "Stop Place Name: ${stopPlaceProperties["stopPlaceName"]}\nNearest Arrival Time of route $routeNumber: ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
+          String response = "Nærmeste ankomst av rute $routeNumber er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
+          _text = response;
         });
       }
       else {
         setState(() {
-          _text = "Stop Place Name: ${stopPlaceProperties["stopPlaceName"]}\nNearest Arrival Time: ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
+          String response = "Nærmeste ankomst er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
+          _text = response;
         });
       }
     }
@@ -149,15 +151,22 @@ class _SpeechScreenState extends State<SpeechScreen> {
     final stopPlaceMatch = stopPlacePattern.firstMatch(text);
 
     // try to extract bus number and stop place from the text
-    if (busNumberMatch != null && stopPlaceMatch != null) {
-      String busNumber = busNumberMatch.group(0)!;
-      String stopPlace = stopPlaceMatch.group(1)!;
-      print("Match Found! :\nbusNumber: $busNumber\nstopPlace: $stopPlace");
-      updateStopPlace(stopPlace, busNumber);
+    if (stopPlaceMatch != null) {
+      if (busNumberMatch != null) {
+        String busNumber = busNumberMatch.group(0)!;
+        String stopPlace = stopPlaceMatch.group(1)!;
+        print("stopPlace and BusNUmber Match Found! :\nbusNumber: $busNumber\nstopPlace: $stopPlace");
+        updateStopPlace(stopPlace, busNumber);
+      }
+      else {
+        String stopPlace = stopPlaceMatch.group(1)!;
+        print("stopPlace and Busnumber Match Found! :\nstopPlace: $stopPlace");
+        updateStopPlace(stopPlace);
+      }
     }
     else {
       setState(() {
-        _text = "Klarte ikke å forstå forespørselen. Prøv igjen.";
+        _text = "Klarte ikke å finne noe stoppested. \nPrøv å si det på en annen måte.";
       });
     }
     
