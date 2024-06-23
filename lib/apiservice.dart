@@ -37,7 +37,7 @@ Future<String> fetchStopPlaceId(String query) async {
     }
 }
 
-Future<Map<String, String?>> getStopPlaceProperties(String stopPlaceId) async {
+Future<Map<String, String?>> getStopPlaceProperties(String stopPlaceId, [String? routeNumber]) async {
 
   String requestURL = "https://api.entur.io/journey-planner/v3/graphql";
 
@@ -77,23 +77,29 @@ Future<Map<String, String?>> getStopPlaceProperties(String stopPlaceId) async {
 
   if (response.statusCode == 200) {
     final results = jsonDecode(response.body);
-    
+
     if (results["data"]["stopPlace"].toString() == "null") {
       return {"Error": "No stop places were found.."};
     }
     else {
-      int amountOfDepartures = results["data"]["stopPlace"]["estimatedCalls"].length;
-      print("Amount of departures available: $amountOfDepartures");
-      print("${amountOfDepartures.toString()} departures found.");
-
       String? stopPlaceName = results["data"]["stopPlace"]["name"];
-      String? expectedArrivalTime = results["data"]["stopPlace"]["estimatedCalls"][0]["expectedArrivalTime"];
+      List<dynamic> estimatedCalls = results["data"]["stopPlace"]["estimatedCalls"];
 
-      Map<String, String?> stopPlaceProperties = {
+      if (routeNumber != null) {
+        String? expectedArrivalTime = estimatedCalls.firstWhere(
+          (i) => i["serviceJourney"]["journeyPattern"]["line"]["publicCode"] == routeNumber)["expectedArrivalTime"];
+        return {
+          "stopPlaceName": stopPlaceName,
+          "nearestArrivalTime": expectedArrivalTime
+        };
+      }
+      else { // if route number wasn't provided, return the nearest arrival time
+        String? expectedArrivalTime = estimatedCalls[0]["expectedArrivalTime"];
+        return {
         "stopPlaceName": stopPlaceName,
         "nearestArrivalTime": expectedArrivalTime
-      };
-      return stopPlaceProperties;
+        };
+      }
     }
   }
   else {

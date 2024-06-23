@@ -120,16 +120,23 @@ class _SpeechScreenState extends State<SpeechScreen> {
     }
   }
 
-  Future<void> updateStopPlace(String stopPlace) async {
+  Future<void> updateStopPlace(String stopPlace, [String? routeNumber]) async {
     String stopPlaceId = await fetchStopPlaceId(stopPlace);
-    Map<String, String?> stopPlaceProperties = await getStopPlaceProperties(stopPlaceId);
+    Map<String, String?> stopPlaceProperties = await getStopPlaceProperties(stopPlaceId, routeNumber);
     if (stopPlaceProperties.keys.first == "Error") {
       setState(() => _text = "Error: ${stopPlaceProperties.values.first}");
     }
     else {
-      setState(() {
-        _text = "Stop Place Name: ${stopPlaceProperties["stopPlaceName"]}\nNearest Arrival Time: ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
-      });
+      if (routeNumber != null) {
+        setState(() {
+        _text = "Stop Place Name: ${stopPlaceProperties["stopPlaceName"]}\nNearest Arrival Time of route $routeNumber: ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
+        });
+      }
+      else {
+        setState(() {
+          _text = "Stop Place Name: ${stopPlaceProperties["stopPlaceName"]}\nNearest Arrival Time: ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
+        });
+      }
     }
   }
 
@@ -146,7 +153,7 @@ class _SpeechScreenState extends State<SpeechScreen> {
       String busNumber = busNumberMatch.group(0)!;
       String stopPlace = stopPlaceMatch.group(1)!;
       print("Match Found! :\nbusNumber: $busNumber\nstopPlace: $stopPlace");
-      updateStopPlace(stopPlace);
+      updateStopPlace(stopPlace, busNumber);
     }
     else {
       setState(() {
