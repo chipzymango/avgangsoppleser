@@ -7,6 +7,7 @@ Future<String> fetchStopPlaceId(String query) async {
     String requestURL = "${baseURL}text=$query&layers=venue";
     final queryParameters = {
     'text': query, // added boundaries to limit query to results within oslo only
+    'layers': 'venue',
     'boundary.rect.min_lat': '59.81',  // Minimum latitude of Oslo
     'boundary.rect.min_lon': '10.55',  // Minimum longitude of Oslo
     'boundary.rect.max_lat': '60.00',  // Maximum latitude of Oslo
@@ -23,7 +24,10 @@ Future<String> fetchStopPlaceId(String query) async {
 
     if (response.statusCode == 200) {
       final Map<String, dynamic> results = json.decode(response.body);
+      print("response 1 body: \n${response.body}");
       String stopPlaceId = results["features"][0]["properties"]["id"];
+      String stopPlaceName = results["features"][0]["properties"]["name"];
+      print("stop Place Name: $stopPlaceName");
 
       return stopPlaceId;
     }
@@ -73,19 +77,26 @@ Future<Map<String, String?>> getStopPlaceProperties(String stopPlaceId) async {
 
   if (response.statusCode == 200) {
     final results = jsonDecode(response.body);
-    int amountOfDepartures = results["data"]["stopPlace"]["estimatedCalls"].length;
-    print("${amountOfDepartures.toString()} departures found.");
+    
+    if (results["data"]["stopPlace"].toString() == "null") {
+      return {"Error": "No stop places were found.."};
+    }
+    else {
+      int amountOfDepartures = results["data"]["stopPlace"]["estimatedCalls"].length;
+      print("Amount of departures available: $amountOfDepartures");
+      print("${amountOfDepartures.toString()} departures found.");
 
-    String? stopPlaceName = results["data"]["stopPlace"]["name"];
-    String? expectedArrivalTime = results["data"]["stopPlace"]["estimatedCalls"][0]["expectedArrivalTime"];
+      String? stopPlaceName = results["data"]["stopPlace"]["name"];
+      String? expectedArrivalTime = results["data"]["stopPlace"]["estimatedCalls"][0]["expectedArrivalTime"];
 
-    Map<String, String?> stopPlaceProperties = {
-      "stopPlaceName": stopPlaceName,
-      "nearestArrivalTime": expectedArrivalTime
-    };
-    return stopPlaceProperties;
+      Map<String, String?> stopPlaceProperties = {
+        "stopPlaceName": stopPlaceName,
+        "nearestArrivalTime": expectedArrivalTime
+      };
+      return stopPlaceProperties;
+    }
   }
   else {
-    return {"Failed": response.statusCode.toString()};
+    return {"Error": response.statusCode.toString()};
   }
 }

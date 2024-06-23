@@ -1,16 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
-import 'helpers.dart';
 import 'apiservice.dart';
 import 'format_time.dart';
-
-List<String> travelKeywords = [
-  "fra", "til", "ved", "gjennom", "mot", "via", "forbi", "mellom", "langs",
-    "ombord", "på", "av", "med", "utenfor", "innom", "over", "under", "innenfor",
-    "reise", "tur", "retning", "destinasjon", "stopp", "holdeplass", "stasjon",
-    "rute", "linje", "buss", "trikk", "t-bane", "tog", "båt", "fly", "transport",
-    "skyss", "avgang", "ankomst", "reisemål", "sjåfør", "passasjer"
-];
+import 'package:nlp/nlp.dart';
 
 void main() {
   // program starts executing here
@@ -42,7 +34,7 @@ class SpeechScreen extends StatefulWidget {
 class _SpeechScreenState extends State<SpeechScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  String _text = "Når kommer 60 bussen på kroklia?";//"Jeg skal ta 25 bussen fra Bjerke til Årvoll";//"[Ord som blir sagt vises her]";
+  String _text = "på bjerke, når kommer 31 bussen??";//"Når kommer 60 bussen på kroklia?";//"Jeg skal ta 25 bussen fra Bjerke til Årvoll";//"[Ord som blir sagt vises her]";
 
   @override
   void initState() {
@@ -131,24 +123,36 @@ class _SpeechScreenState extends State<SpeechScreen> {
   Future<void> updateStopPlace(String stopPlace) async {
     String stopPlaceId = await fetchStopPlaceId(stopPlace);
     Map<String, String?> stopPlaceProperties = await getStopPlaceProperties(stopPlaceId);
-    setState(() {
-      _text = "Stop Place Name: ${stopPlaceProperties["stopPlaceName"]}\nNearest Arrival Time: ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
-    });
+    if (stopPlaceProperties.keys.first == "Error") {
+      setState(() => _text = "Error: ${stopPlaceProperties.values.first}");
+    }
+    else {
+      setState(() {
+        _text = "Stop Place Name: ${stopPlaceProperties["stopPlaceName"]}\nNearest Arrival Time: ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
+      });
+    }
   }
 
   void _handleSpeech(String text) {
-    // check for keywords
-    List<String> keywords = findTravelRelatedWord(text.split(' '));
-    
-    // check for numbersr
-    String number = findDigits(text);
+    print("_text: $text");
+    final busNumberPattern = RegExp(r'\d{1,3}');
+    final stopPlacePattern = RegExp(r'\b(?:stopp|holdeplass|stasjon|ved|på|i)\s(\w+)', caseSensitive: false);
 
-    // check if it is a bus station name
-    if (text.split(' ')[0].toLowerCase() == "når") {
-      // anticipating the speech begins with "when", it'll perform a search to find departure times in a stop place
-      String stopPlace = text.split(' ')[text.split(' ').length-1].toLowerCase();
+    final busNumberMatch = busNumberPattern.firstMatch(text);
+    final stopPlaceMatch = stopPlacePattern.firstMatch(text);
 
+    // try to extract bus number and stop place from the text
+    if (busNumberMatch != null && stopPlaceMatch != null) {
+      String busNumber = busNumberMatch.group(0)!;
+      String stopPlace = stopPlaceMatch.group(1)!;
+      print("Match Found! :\nbusNumber: $busNumber\nstopPlace: $stopPlace");
       updateStopPlace(stopPlace);
     }
+    else {
+      setState(() {
+        _text = "Klarte ikke å forstå forespørselen. Prøv igjen.";
+      });
+    }
+    
   }
 }

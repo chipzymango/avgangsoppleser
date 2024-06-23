@@ -39,6 +39,7 @@ dependencies:
   speech_to_text: 
   http: ^1.2.1
   intl: 
+  nlp: ^0.0.0
 
 dev_dependencies:
   flutter_test:
