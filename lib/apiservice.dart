@@ -26,7 +26,7 @@ Future<String> fetchStopPlaceId(String query) async {
       final Map<String, dynamic> results = json.decode(response.body);
       //print("response 1 body: \n${response.body}");
       String stopPlaceId = results["features"][0]["properties"]["id"];
-      
+
       return stopPlaceId;
     }
     else 
@@ -35,7 +35,7 @@ Future<String> fetchStopPlaceId(String query) async {
     }
 }
 
-Future<Map<String, String?>> getStopPlaceProperties(String stopPlaceId, [String? routeNumber]) async {
+Future<Map<String, String?>> getStopPlaceProperties(String stopPlaceId, {String? routeNumber, String? routeName}) async {
 
   String requestURL = "https://api.entur.io/journey-planner/v3/graphql";
 
@@ -44,7 +44,7 @@ Future<Map<String, String?>> getStopPlaceProperties(String stopPlaceId, [String?
     stopPlace(id: "$stopPlaceId") {
       id
       name
-      estimatedCalls(timeRange: 72100, numberOfDepartures: 10) {
+      estimatedCalls(timeRange: 72100, numberOfDepartures: 60) {
         realtime
         aimedArrivalTime
         expectedArrivalTime
@@ -67,35 +67,83 @@ Future<Map<String, String?>> getStopPlaceProperties(String stopPlaceId, [String?
   final response = await http.post(
     Uri.parse(requestURL),
     headers: <String, String>{
-      'Content-Type': 'application/json; charset=UTF-8',
+      'Content-Type': 'application/json; charset=utf-8',
       'ET-Client-Name': 'chipzymango-departuresboard'
     },
     body: jsonEncode({'query': query})
   );
 
   if (response.statusCode == 200) {
-    final results = jsonDecode(response.body);
+    final results = jsonDecode(utf8.decode(response.bodyBytes));
 
     if (results["data"]["stopPlace"].toString() == "null") {
       return {"Error": "No stop places were found.."};
     }
     else {
       String? stopPlaceName = results["data"]["stopPlace"]["name"];
+
       List<dynamic> estimatedCalls = results["data"]["stopPlace"]["estimatedCalls"];
 
-      if (routeNumber != null) {
-        String? expectedArrivalTime = estimatedCalls.firstWhere(
-          (i) => i["serviceJourney"]["journeyPattern"]["line"]["publicCode"] == routeNumber)["expectedArrivalTime"];
+      if (routeNumber != null && routeName != null) {
+        var matchingCall = estimatedCalls.firstWhere(
+        (i) => 
+        i["serviceJourney"]["journeyPattern"]["line"]["publicCode"] == routeNumber &&
+        i["destinationDisplay"]["frontText"].toLowerCase().contains(routeName.toLowerCase()),
+        orElse: () => null
+        );
+
+        if (matchingCall != null) {
+          String? expectedArrivalTime = matchingCall["expectedArrivalTime"];
+          return {
+            "stopPlaceName": stopPlaceName,
+            "nearestArrivalTime": expectedArrivalTime
+          };
+        }
+
+        else {
+          return {"Error": "No routes with the specified route number- and name were found"};
+        }
+
+      }
+      else if (routeNumber != null) {
+        var matchingCall = estimatedCalls.firstWhere(
+          (i) => i["serviceJourney"]["journeyPattern"]["line"]["publicCode"] == routeNumber,
+          orElse: () => null);
+
+        if (matchingCall != null) {
+          String? expectedArrivalTime = matchingCall["expectedArrivalTime"];
+          return {
+            "stopPlaceName": stopPlaceName,
+            "nearestArrivalTime": expectedArrivalTime
+          };
+        }
+        else {
+          return {"Error": "No routes with the specified route number were found"};
+        }
+      }
+
+      else if (routeName != null) {        
+        var matchedCall = estimatedCalls.firstWhere(
+          (i) => i["destinationDisplay"]["frontText"].toLowerCase().contains(routeName.toLowerCase()),
+          orElse: () => null);
+        
+        if (matchedCall != null) {
+          String? expectedArrivalTime = matchedCall["expectedArrivalTime"];
+          return {
+            "stopPlaceName": stopPlaceName,
+            "nearestArrivalTime": expectedArrivalTime
+          };
+        }
+        else {
+          return {"Error": "No routes with the specified route names were found"};
+        }
+      }
+
+      else { // if neither route number or name were provided, return the nearest arrival time
+        String? expectedArrivalTime = estimatedCalls[0]["expectedArrivalTime"];
         return {
           "stopPlaceName": stopPlaceName,
           "nearestArrivalTime": expectedArrivalTime
-        };
-      }
-      else { // if route number wasn't provided, return the nearest arrival time
-        String? expectedArrivalTime = estimatedCalls[0]["expectedArrivalTime"];
-        return {
-        "stopPlaceName": stopPlaceName,
-        "nearestArrivalTime": expectedArrivalTime
         };
       }
     }

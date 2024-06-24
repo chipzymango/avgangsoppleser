@@ -34,7 +34,7 @@ class SpeechScreen extends StatefulWidget {
 class _SpeechScreenState extends State<SpeechScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  String _text = "Når kommer 60 bussen på kroklia";//"Når kommer 60 bussen på kroklia?";//"Jeg skal ta 25 bussen fra Bjerke til Årvoll";//"[Ord som blir sagt vises her]";
+  String _text = "hvilken tid kommer tonsenhagen på kroklia?";
 
   @override
   void initState() {
@@ -120,22 +120,34 @@ class _SpeechScreenState extends State<SpeechScreen> {
     }
   }
 
-  Future<void> updateStopPlace(String stopPlace, [String? routeNumber]) async {
+  Future<void> updateStopPlace(String stopPlace, {String? routeNumber, String? routeName}) async {
     String stopPlaceId = await fetchStopPlaceId(stopPlace);
-    Map<String, String?> stopPlaceProperties = await getStopPlaceProperties(stopPlaceId, routeNumber);
+    Map<String, String?> stopPlaceProperties = await getStopPlaceProperties(stopPlaceId, routeNumber: routeNumber, routeName: routeName);
     if (stopPlaceProperties.keys.first == "Error") {
       setState(() => _text = "Error: ${stopPlaceProperties.values.first}");
     }
     else {
-      if (routeNumber != null) {
+      if (routeNumber != null &&routeName != null) {
+        String response = "Nærmeste ankomst av rute $routeNumber mot $routeName er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
         setState(() {
-          String response = "Nærmeste ankomst av rute $routeNumber er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
+          _text = response;
+        });
+      }
+      else if (routeNumber != null) {
+        String response = "Nærmeste ankomst av rute $routeNumber er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
+        setState(() {
+          _text = response;
+        });
+      }
+      else if (routeName != null) {
+        String response = "Nærmeste ankomst av ruten mot $routeName er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
+        setState(() {
           _text = response;
         });
       }
       else {
+        String response = "Nærmeste ankomst er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
         setState(() {
-          String response = "Nærmeste ankomst er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
           _text = response;
         });
       }
@@ -143,24 +155,34 @@ class _SpeechScreenState extends State<SpeechScreen> {
   }
 
   void _handleSpeech(String text) {
-    print("_text: $text");
-    final busNumberPattern = RegExp(r'\d{1,3}');
-    final stopPlacePattern = RegExp(r'\b(?:stopp|holdeplass|stasjon|ved|på|i)\s(\w+)', caseSensitive: false);
+    final routeNumberPattern = RegExp(r'\d{1,3}');
+    final stopPlacePattern = RegExp(r'\b(?:stopp|holdeplass|stasjon|ved|på|til|i)\s([\wæøåÆØÅ]+)', caseSensitive: false);
+    final onlyRouteNamePattern = RegExp(r'kommer\s+([\wæøåÆØÅ]+)', caseSensitive: false);
+    final routeNumberAndNamePattern = RegExp(r'(\d{1,3})\s+(?!buss|bussen|t-banen|banen|båten|trikken)([\wæøåÆØÅ]+)');
 
-    final busNumberMatch = busNumberPattern.firstMatch(text);
+    final routeNumberMatch = routeNumberPattern.firstMatch(text);
     final stopPlaceMatch = stopPlacePattern.firstMatch(text);
+    final routeNameMatch = onlyRouteNamePattern.firstMatch(text);
+    final routeNumberAndNamePatternMatch = routeNumberAndNamePattern.firstMatch(text);
 
     // try to extract bus number and stop place from the text
     if (stopPlaceMatch != null) {
-      if (busNumberMatch != null) {
-        String busNumber = busNumberMatch.group(0)!;
-        String stopPlace = stopPlaceMatch.group(1)!;
-        print("stopPlace and BusNUmber Match Found! :\nbusNumber: $busNumber\nstopPlace: $stopPlace");
-        updateStopPlace(stopPlace, busNumber);
+      String stopPlace = stopPlaceMatch.group(1)!;
+      if (routeNumberAndNamePatternMatch != null) {
+        String routeNumber = routeNumberAndNamePatternMatch.group(1)!;
+        String routeName = routeNumberAndNamePatternMatch.group(2)!;
+
+        updateStopPlace(stopPlace, routeNumber: routeNumber, routeName: routeName);
+      }
+      else if (routeNumberMatch != null) {
+        String routeNumber = routeNumberMatch.group(0)!;
+        updateStopPlace(stopPlace, routeNumber: routeNumber);
+      }
+      else if (routeNameMatch != null) {
+        String routeName = routeNameMatch.group(1)!;
+        updateStopPlace(stopPlace, routeName: routeName);
       }
       else {
-        String stopPlace = stopPlaceMatch.group(1)!;
-        print("stopPlace and Busnumber Match Found! :\nstopPlace: $stopPlace");
         updateStopPlace(stopPlace);
       }
     }
