@@ -40,6 +40,7 @@ dependencies:
   http: ^1.2.1
   intl: 
   nlp: ^0.0.0
+  flutter_tts: ^3.8.3
 
 dev_dependencies:
   flutter_test:

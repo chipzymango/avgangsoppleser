@@ -3,6 +3,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'apiservice.dart';
 import 'format_time.dart';
 import 'package:nlp/nlp.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 void main() {
   // program starts executing here
@@ -34,13 +35,40 @@ class SpeechScreen extends StatefulWidget {
 class _SpeechScreenState extends State<SpeechScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  String _text = "hvilken tid kommer tonsenhagen på kroklia?";
+  String _text = "når kommer 60 tonsenhagen på kroklia?";
+
+  FlutterTts _flutterTts = FlutterTts();
+  Map? _currentVoice;
+
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     _speech = stt.SpeechToText(); 
+    initTTS();
+  }
+
+  void initTTS() {
+    _flutterTts.getVoices.then( (data) {
+      try {
+        List<Map> _voices = List<Map>.from(data);
+        _voices =
+        _voices.where((_voice) => _voice["name"].contains("no")).toList();
+      setState(() {
+        _currentVoice = _voices[_voices.length-2];
+        setVoice(_currentVoice!);
+      });
+      
+      }
+      catch (e) {
+        print("error: $e");
+      }
+    });
+  }
+
+  void setVoice(Map voice) {
+    _flutterTts.setVoice({"name": voice["name"], "locale": voice["locale"]});
   }
 
   @override
@@ -125,6 +153,8 @@ class _SpeechScreenState extends State<SpeechScreen> {
     Map<String, String?> stopPlaceProperties = await getStopPlaceProperties(stopPlaceId, routeNumber: routeNumber, routeName: routeName);
     if (stopPlaceProperties.keys.first == "Error") {
       setState(() => _text = "Error: ${stopPlaceProperties.values.first}");
+      _flutterTts.speak("Det oppsto en feil");
+      
     }
     else {
       if (routeNumber != null &&routeName != null) {
@@ -132,65 +162,67 @@ class _SpeechScreenState extends State<SpeechScreen> {
         setState(() {
           _text = response;
         });
+        _flutterTts.speak(response);
       }
       else if (routeNumber != null) {
         String response = "Nærmeste ankomst av rute $routeNumber er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
         setState(() {
           _text = response;
         });
+        _flutterTts.speak(response);
       }
       else if (routeName != null) {
         String response = "Nærmeste ankomst av ruten mot $routeName er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
         setState(() {
           _text = response;
         });
+        _flutterTts.speak(response);
       }
       else {
         String response = "Nærmeste ankomst er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
         setState(() {
           _text = response;
         });
+        _flutterTts.speak(response);
       }
     }
   }
 
   void _handleSpeech(String text) {
-    final routeNumberPattern = RegExp(r'\d{1,3}');
-    final stopPlacePattern = RegExp(r'\b(?:stopp|holdeplass|stasjon|ved|på|til|i)\s([\wæøåÆØÅ]+)', caseSensitive: false);
-    final onlyRouteNamePattern = RegExp(r'kommer\s+([\wæøåÆØÅ]+)', caseSensitive: false);
-    final routeNumberAndNamePattern = RegExp(r'(\d{1,3})\s+(?!buss|bussen|t-banen|banen|båten|trikken)([\wæøåÆØÅ]+)');
+  final routeNumberPattern = RegExp(r'\b\d{1,3}\b');
+    final stopPlacePattern = RegExp(r'\b(?:stopp|holdeplass|stasjon|ved|på|til|i)\s+([\wæøåÆØÅ\s]+)', caseSensitive: false);
+    final onlyRouteNamePattern = RegExp(r'kommer\s+([\wæøåÆØÅ\s]+?)\s*(?:på|til|ved|i|$)', caseSensitive: false);
+    final routeNumberAndNamePattern = RegExp(r'(\d{1,3})\s+([\wæøåÆØÅ\s]+?)(?:\s+(på|til|ved|i|$))', caseSensitive: false);
 
     final routeNumberMatch = routeNumberPattern.firstMatch(text);
     final stopPlaceMatch = stopPlacePattern.firstMatch(text);
     final routeNameMatch = onlyRouteNamePattern.firstMatch(text);
     final routeNumberAndNamePatternMatch = routeNumberAndNamePattern.firstMatch(text);
 
-    // try to extract bus number and stop place from the text
     if (stopPlaceMatch != null) {
-      String stopPlace = stopPlaceMatch.group(1)!;
+      String stopPlace = stopPlaceMatch.group(1)!.trim();
       if (routeNumberAndNamePatternMatch != null) {
         String routeNumber = routeNumberAndNamePatternMatch.group(1)!;
-        String routeName = routeNumberAndNamePatternMatch.group(2)!;
+        String routeName = routeNumberAndNamePatternMatch.group(2)!.trim();
 
         updateStopPlace(stopPlace, routeNumber: routeNumber, routeName: routeName);
-      }
+      } 
       else if (routeNumberMatch != null) {
         String routeNumber = routeNumberMatch.group(0)!;
         updateStopPlace(stopPlace, routeNumber: routeNumber);
-      }
+      } 
       else if (routeNameMatch != null) {
-        String routeName = routeNameMatch.group(1)!;
+        String routeName = routeNameMatch.group(1)!.trim();
         updateStopPlace(stopPlace, routeName: routeName);
-      }
+      } 
       else {
         updateStopPlace(stopPlace);
       }
-    }
-    else {
+    } else {
       setState(() {
         _text = "Klarte ikke å finne noe stoppested. \nPrøv å si det på en annen måte.";
       });
+      _flutterTts.speak(_text);
     }
-    
   }
 }
