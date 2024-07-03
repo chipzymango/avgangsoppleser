@@ -35,7 +35,7 @@ class SpeechScreen extends StatefulWidget {
 class _SpeechScreenState extends State<SpeechScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  String _text = "når kommer 60 tonsenhagen på kroklia?";
+  String _text = "Når kommer 4b romsås på grorud";
 
   FlutterTts _flutterTts = FlutterTts();
   Map? _currentVoice;
@@ -56,7 +56,7 @@ class _SpeechScreenState extends State<SpeechScreen> {
         _voices =
         _voices.where((_voice) => _voice["name"].contains("no")).toList();
       setState(() {
-        _currentVoice = _voices[_voices.length-2];
+        _currentVoice = _voices[_voices.length];
         setVoice(_currentVoice!);
       });
       
@@ -97,7 +97,7 @@ class _SpeechScreenState extends State<SpeechScreen> {
           Expanded(
             child: Container(
               child: const Text(
-                "Trykk på knappen for å snakke\nF.eks. 'Når kommer 31 bussen på Tonsenhagen?'",
+                "Trykk på knappen for å snakke\nF.eks. 'Når kommer 4b romsås på grorud'",
                 style: TextStyle(
                   fontSize: 20, 
                   color: Colors.grey
@@ -189,10 +189,10 @@ class _SpeechScreenState extends State<SpeechScreen> {
   }
 
   void _handleSpeech(String text) {
-  final routeNumberPattern = RegExp(r'\b\d{1,3}\b');
+  final routeNumberPattern = RegExp(r'\b\d{1,3}[A-Za-z]?\b');
     final stopPlacePattern = RegExp(r'\b(?:stopp|holdeplass|stasjon|ved|på|til|i)\s+([\wæøåÆØÅ\s]+)', caseSensitive: false);
     final onlyRouteNamePattern = RegExp(r'kommer\s+([\wæøåÆØÅ\s]+?)\s*(?:på|til|ved|i|$)', caseSensitive: false);
-    final routeNumberAndNamePattern = RegExp(r'(\d{1,3})\s+([\wæøåÆØÅ\s]+?)(?:\s+(på|til|ved|i|$))', caseSensitive: false);
+    final routeNumberAndNamePattern = RegExp(r'(\d{1,3}[A-Za-z]?)\s+([\wæøåÆØÅ\s]+?)(?:\s+(på|til|ved|i|$))', caseSensitive: false);
 
     final routeNumberMatch = routeNumberPattern.firstMatch(text);
     final stopPlaceMatch = stopPlacePattern.firstMatch(text);
