@@ -69,76 +69,74 @@ Future<Map<String, String?>> getStopPlaceProperties(String stopPlaceId, {String?
 
   if (response.statusCode == 200) {
     final results = jsonDecode(utf8.decode(response.bodyBytes));
-    print("API Response: $results");
 
     if (results["data"]["stopPlace"].toString() == "null") {
-      return {"Error": "No stop places were found.."};
+      return {"Error": "Ingen stoppesteder funnet"};
     } else {
       String? stopPlaceName = results["data"]["stopPlace"]["name"];
       List<dynamic> estimatedCalls = results["data"]["stopPlace"]["estimatedCalls"];
       for (var call in estimatedCalls) {
         String frontText = call["destinationDisplay"]["frontText"];
         String publicCode = call["serviceJourney"]["journeyPattern"]["line"]["publicCode"];
-        print("FrontText: $frontText, PublicCode: $publicCode");
       }
 
       if (routeNumber != null && routeName != null) {
-        print("API SIDE: route number '$routeNumber' and route name '$routeName' detected");
+        if (routeName == "bussen" || routeName == "trikken") {
+          return {"Error": "Angi retningen på ruta. For eksempel: 60 Tonsenhagen"};
+        }
+        if (routeName.contains("bussen")) {
+          routeName = routeName.replaceAll(" bussen", "");
+        }
+
         var matchingCall = estimatedCalls.firstWhere(
           (i) => 
             i["serviceJourney"]["journeyPattern"]["line"]["publicCode"].toString().trim().toLowerCase() == routeNumber.trim().toLowerCase() &&
-            i["destinationDisplay"]["frontText"].toString().trim().toLowerCase().contains(routeName.trim().toLowerCase()),
+            i["destinationDisplay"]["frontText"].toString().trim().toLowerCase().contains(routeName!.trim().toLowerCase()),
           orElse: () => null
         );
 
         if (matchingCall != null) {
-          print("Matching call found: $matchingCall");
           String? expectedArrivalTime = matchingCall["expectedArrivalTime"];
           return {
             "stopPlaceName": stopPlaceName,
             "nearestArrivalTime": expectedArrivalTime
           };
         } else {
-          print("Matching call failed");
-          return {"Error": "No routes with the specified route number and name were found"};
+          return {"Error": "Finner ingen rute med angitt rutenummer og rutenavn"};
         }
 
       } else if (routeNumber != null) {
-        print("API SIDE: route number '$routeNumber' detected");
         var matchingCall = estimatedCalls.firstWhere(
           (i) => i["serviceJourney"]["journeyPattern"]["line"]["publicCode"].toString().trim().toLowerCase() == routeNumber.trim().toLowerCase(),
           orElse: () => null
         );
 
         if (matchingCall != null) {
-          print("Matching call found: $matchingCall");
           String? expectedArrivalTime = matchingCall["expectedArrivalTime"];
           return {
             "stopPlaceName": stopPlaceName,
             "nearestArrivalTime": expectedArrivalTime
           };
         } else {
-          return {"Error": "No routes with the specified route number were found"};
+          return {"Error": "Finner ingen rute med angitt rutenummer"};
         }
       } else if (routeName != null) {        
-        print("API SIDE: route name '$routeName' detected");
         var matchingCall = estimatedCalls.firstWhere(
-          (i) => i["destinationDisplay"]["frontText"].toString().trim().toLowerCase().contains(routeName.trim().toLowerCase()),
+          (i) => i["destinationDisplay"]["frontText"].toString().trim().toLowerCase().contains(routeName!.trim().toLowerCase()),
           orElse: () => null
         );
 
         if (matchingCall != null) {
-          print("Matching call found: $matchingCall");
           String? expectedArrivalTime = matchingCall["expectedArrivalTime"];
           return {
             "stopPlaceName": stopPlaceName,
             "nearestArrivalTime": expectedArrivalTime
           };
         } else {
-          return {"Error": "No routes with the specified route name were found"};
+          return {"Error": "Finner ingen rute med angitt rutenavn"};
         }
       } else {
-        print("API side: neither route name nor route number detected, so getting closest arrival time");
+        // neither route name nor route number detected, so getting closest arrival time
         String? expectedArrivalTime = estimatedCalls[0]["expectedArrivalTime"];
         return {
           "stopPlaceName": stopPlaceName,

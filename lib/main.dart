@@ -5,6 +5,12 @@ import 'format_time.dart';
 import 'package:nlp/nlp.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
+String testQuery = "Når kommer 4B Romsås bussen til grorud";
+
+Map <String, String> correctionMap = {
+  "årsbråten": "åsbråten",
+};
+
 void main() {
   // program starts executing here
   runApp(const MyApp());
@@ -35,7 +41,7 @@ class SpeechScreen extends StatefulWidget {
 class _SpeechScreenState extends State<SpeechScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
-  String _text = "Når kommer 4b romsås på grorud";
+  String _text = testQuery;
 
   FlutterTts _flutterTts = FlutterTts();
   Map? _currentVoice;
@@ -56,7 +62,7 @@ class _SpeechScreenState extends State<SpeechScreen> {
         _voices =
         _voices.where((_voice) => _voice["name"].contains("no")).toList();
       setState(() {
-        _currentVoice = _voices[_voices.length];
+        _currentVoice = _voices[7];
         setVoice(_currentVoice!);
       });
       
@@ -96,29 +102,38 @@ class _SpeechScreenState extends State<SpeechScreen> {
           ),
           Expanded(
             child: Container(
+              padding: const EdgeInsets.all(25.0),
               child: const Text(
-                "Trykk på knappen for å snakke\nF.eks. 'Når kommer 4b romsås på grorud'",
+                'Finn ankomsttider i stoppesteder! \nF.eks. "Når kommer 4B Romsås på Grorud"',
                 style: TextStyle(
                   fontSize: 20, 
-                  color: Colors.grey
+                  color: Color.fromARGB(255, 75, 75, 75),
                   )
               )
             )
+            
           ),
           Expanded(
             child: Text(
-              _text
+              _text, 
+              style: TextStyle(
+                fontWeight: FontWeight.w700
+                )
             )
           ),
 
           Container(
             padding: const EdgeInsets.fromLTRB(0,0,0,40.0),
+            width: 120,
+            height: 120,
             child: FloatingActionButton(
               onPressed: _listen ,
               backgroundColor: Colors.green,
-              child: Icon(_isListening ? Icons.mic : Icons.mic_none),
+              child: Icon(_isListening ? Icons.mic : Icons.mic_none, size: 30),
+              shape: const CircleBorder(),
+              
+              
             ),
-            
           ),
       ])
     );
@@ -134,6 +149,7 @@ class _SpeechScreenState extends State<SpeechScreen> {
 
       if (available) {
         setState(() => _isListening = true);
+        _flutterTts.stop();
         _speech.listen(
           onResult: (val) => setState(() {
             _text = val.recognizedWords; // each recognized word in text
@@ -152,8 +168,8 @@ class _SpeechScreenState extends State<SpeechScreen> {
     String stopPlaceId = await fetchStopPlaceId(stopPlace);
     Map<String, String?> stopPlaceProperties = await getStopPlaceProperties(stopPlaceId, routeNumber: routeNumber, routeName: routeName);
     if (stopPlaceProperties.keys.first == "Error") {
-      setState(() => _text = "Error: ${stopPlaceProperties.values.first}");
-      _flutterTts.speak("Det oppsto en feil");
+      setState(() => _text = "${stopPlaceProperties.values.first}");
+      _flutterTts.speak(_text);
       
     }
     else {
@@ -162,34 +178,34 @@ class _SpeechScreenState extends State<SpeechScreen> {
         setState(() {
           _text = response;
         });
-        _flutterTts.speak(response);
+        _flutterTts.speak("Nærmeste ankomst er om. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
       }
       else if (routeNumber != null) {
         String response = "Nærmeste ankomst av rute $routeNumber er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
         setState(() {
           _text = response;
         });
-        _flutterTts.speak(response);
+        _flutterTts.speak("Nærmeste ankomst er om. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
       }
       else if (routeName != null) {
         String response = "Nærmeste ankomst av ruten mot $routeName er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
         setState(() {
           _text = response;
         });
-        _flutterTts.speak(response);
+        _flutterTts.speak("Nærmeste ankomst er om. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
       }
       else {
         String response = "Nærmeste ankomst er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
         setState(() {
           _text = response;
         });
-        _flutterTts.speak(response);
+        _flutterTts.speak("Nærmeste ankomst er om. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
       }
     }
   }
 
   void _handleSpeech(String text) {
-  final routeNumberPattern = RegExp(r'\b\d{1,3}[A-Za-z]?\b');
+    final routeNumberPattern = RegExp(r'\b\d{1,3}[A-Za-z]?\b');
     final stopPlacePattern = RegExp(r'\b(?:stopp|holdeplass|stasjon|ved|på|til|i)\s+([\wæøåÆØÅ\s]+)', caseSensitive: false);
     final onlyRouteNamePattern = RegExp(r'kommer\s+([\wæøåÆØÅ\s]+?)\s*(?:på|til|ved|i|$)', caseSensitive: false);
     final routeNumberAndNamePattern = RegExp(r'(\d{1,3}[A-Za-z]?)\s+([\wæøåÆØÅ\s]+?)(?:\s+(på|til|ved|i|$))', caseSensitive: false);
@@ -220,9 +236,10 @@ class _SpeechScreenState extends State<SpeechScreen> {
       }
     } else {
       setState(() {
-        _text = "Klarte ikke å finne noe stoppested. \nPrøv å si det på en annen måte.";
+        _text = "Du har ikke nevnt noe stoppested. Hvilken holdeplass / stasjon skal ruten ankomme?";
       });
-      _flutterTts.speak(_text);
+      _flutterTts.speak("Du har ikke nevnt navnet på noe stoppested");
+      
     }
   }
 }
