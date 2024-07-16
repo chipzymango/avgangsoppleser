@@ -4,6 +4,7 @@ import 'apiservice.dart';
 import 'format_time.dart';
 import 'package:nlp/nlp.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:location/location.dart';
 
 String testQuery = "Når kommer 4B Romsås bussen til grorud";
 
@@ -45,6 +46,7 @@ class _SpeechScreenState extends State<SpeechScreen> {
 
   FlutterTts _flutterTts = FlutterTts();
   Map? _currentVoice;
+  Location location = Location();
 
 
   @override
@@ -53,6 +55,36 @@ class _SpeechScreenState extends State<SpeechScreen> {
     super.initState();
     _speech = stt.SpeechToText(); 
     initTTS();
+    requestLocation();
+  }
+
+  Future<LocationData?> requestLocation() async {
+    bool _locationServiceEnabled;
+    PermissionStatus _permissionGranted;
+    LocationData _locationData;
+
+    // enable location services
+    _locationServiceEnabled = await location.serviceEnabled();
+    if (!_locationServiceEnabled) {
+      _locationServiceEnabled = await location.requestService();
+      if (!_locationServiceEnabled) {
+        print("Location services couldn't be enabled");
+        return null;
+      }
+    }
+
+    // request location permissions
+    _permissionGranted = await location.hasPermission();
+    if (_permissionGranted == PermissionStatus.denied) {
+      _permissionGranted = await location.requestPermission();
+      if (_permissionGranted != PermissionStatus.granted) {
+        print("Permission for location services was denied");
+        return null;
+      }
+    }
+
+    print("Permissions have been granted, getting location data...");
+    return await location.getLocation(); 
   }
 
   void initTTS() {
@@ -116,7 +148,7 @@ class _SpeechScreenState extends State<SpeechScreen> {
           Expanded(
             child: Text(
               _text, 
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.w700
                 )
             )
@@ -132,7 +164,6 @@ class _SpeechScreenState extends State<SpeechScreen> {
               child: Icon(_isListening ? Icons.mic : Icons.mic_none, size: 30),
               shape: const CircleBorder(),
               
-              
             ),
           ),
       ])
@@ -141,11 +172,26 @@ class _SpeechScreenState extends State<SpeechScreen> {
 
   // this is to be called when microphone button is pressed
   void _listen() async {
-    if (!_isListening) { 
+    if (!_isListening) {
+      // handle getting the user location
+      LocationData? locationData = await requestLocation();
+      if (locationData == null) {
+        setState(() => _text = "Kunne ikke hente posisjon. Sørg for at posisjonstjenester er aktivert og at de nødvendige tillatelsene er gitt.");
+        _flutterTts.speak(_text);
+        return;
+      }
+      else {
+        setState(() => _text = locationData.toString());
+        print(locationData);
+      }
+
+      // handle speech services
       bool available = await _speech.initialize( 
         onStatus: (val) => print('onStatus:$val'),
         onError: (val) => print('onStatus: $val'),
       ); // waiting for initialization of speech recognition services
+
+
 
       if (available) {
         setState(() => _isListening = true);

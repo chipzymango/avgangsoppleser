@@ -49,5 +49,9 @@
 	<string>Bruk talegjenkjenning til å finne stoppesteder</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Bruke mikrofonen til å ta opp lyd</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Beregne posisjon for å finne nærmeste stoppested eller holdeplass</string>
+	<key>UIBackgroundModes</key>
+	<string>location</string>
 </dict>
 </plist>
