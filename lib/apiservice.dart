@@ -70,15 +70,13 @@ Future<Map<String, String?>> getStopPlaceProperties(String stopPlaceId, {String?
   if (response.statusCode == 200) {
     final results = jsonDecode(utf8.decode(response.bodyBytes));
 
-    if (results["data"]["stopPlace"].toString() == "null") {
+    if (results["data"]["stopPlace"] == null) {
       return {"Error": "Ingen stoppesteder funnet"};
-    } else {
+    } 
+    else {
       String? stopPlaceName = results["data"]["stopPlace"]["name"];
+
       List<dynamic> estimatedCalls = results["data"]["stopPlace"]["estimatedCalls"];
-      for (var call in estimatedCalls) {
-        String frontText = call["destinationDisplay"]["frontText"];
-        String publicCode = call["serviceJourney"]["journeyPattern"]["line"]["publicCode"];
-      }
 
       if (routeNumber != null && routeName != null) {
         if (routeName == "bussen" || routeName == "trikken") {
@@ -120,7 +118,12 @@ Future<Map<String, String?>> getStopPlaceProperties(String stopPlaceId, {String?
         } else {
           return {"Error": "Finner ingen rute med angitt rutenummer"};
         }
-      } else if (routeName != null) {        
+      } else if (routeName != null) {
+
+        if (routeName.contains("bussen")) {
+          routeName = routeName.replaceAll(" bussen", "");
+        }
+
         var matchingCall = estimatedCalls.firstWhere(
           (i) => i["destinationDisplay"]["frontText"].toString().trim().toLowerCase().contains(routeName!.trim().toLowerCase()),
           orElse: () => null
@@ -137,14 +140,47 @@ Future<Map<String, String?>> getStopPlaceProperties(String stopPlaceId, {String?
         }
       } else {
         // neither route name nor route number detected, so getting closest arrival time
-        String? expectedArrivalTime = estimatedCalls[0]["expectedArrivalTime"];
-        return {
-          "stopPlaceName": stopPlaceName,
-          "nearestArrivalTime": expectedArrivalTime
-        };
+        if (estimatedCalls.isNotEmpty) {
+          String? expectedArrivalTime = estimatedCalls[0]["expectedArrivalTime"];
+          return {
+            "stopPlaceName": stopPlaceName,
+            "nearestArrivalTime": expectedArrivalTime
+          };
+        } else {
+          return {"Error": "Ingen estimert ankomsttid funnet"};
+        }
       }
     }
   } else {
     return {"Error": response.statusCode.toString()};
+  }
+}
+
+Future<List<String>> fetchStopPlacesIdsByCoords(String latitude, String longitude, {int amountOfStopPlaces = 5}) async {
+  String baseURL = "https://api.entur.io/geocoder/v1/reverse?";
+  String requestURL = "${baseURL}point.lat=$latitude&point.lon=$longitude&boundary.circle.radius=10&size=${amountOfStopPlaces.toString()}&layers=venue";
+
+  List<String> stopPlaceIds = [];
+
+  final response = await http.get(
+    Uri.parse(requestURL), headers: {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'ET-Client-Name': 'chipzymango-departuresboard'
+    }
+  );
+
+  if (response.statusCode == 200) {
+    
+    final results = jsonDecode(utf8.decode(response.bodyBytes));
+    List<dynamic> nearbyStopPlaces = results["features"];
+
+    for (var stopPlace in nearbyStopPlaces) {
+      String stopPlaceId = stopPlace["properties"]["id"];//.split(":")[2];
+      stopPlaceIds.add(stopPlaceId);      
+    }
+    return stopPlaceIds;
+  } 
+  else {
+    return ["Request error: ${response.statusCode.toString()}"];
   }
 }
