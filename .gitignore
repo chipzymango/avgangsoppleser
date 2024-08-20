@@ -41,3 +41,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+
+# exports
+/lib/scripts/03_Oslo_latest
+/lib/scripts/32_Akershus_latest
+/lib/scripts/rb_rut-aggregated-netex
