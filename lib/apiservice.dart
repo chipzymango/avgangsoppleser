@@ -7,10 +7,10 @@ Future<String> fetchStopPlaceId(String query) async {
   final queryParameters = {
     'text': query, 
     'layers': 'venue',
-    'boundary.rect.min_lat': '59.81', 
-    'boundary.rect.min_lon': '10.55',
-    'boundary.rect.max_lat': '60.00',
-    'boundary.rect.max_lon': '10.95',
+    'boundary.rect.min_lat': '59.60',  // Minimum latitude of Oslo + Akershus
+    'boundary.rect.min_lon': '10.10',  // Minimum longitude of Oslo + Akershus
+    'boundary.rect.max_lat': '60.30',  // Maximum latitude of Oslo + Akershus
+    'boundary.rect.max_lon': '11.30',  // Maximum longitude of Oslo + Akershus
     'size': '10'
   };
 
@@ -23,6 +23,7 @@ Future<String> fetchStopPlaceId(String query) async {
 
   if (response.statusCode == 200) {
     final Map<String, dynamic> results = json.decode(response.body);
+    print(results);
     String stopPlaceId = results["features"][0]["properties"]["id"];
     return stopPlaceId;
   } else {
@@ -183,4 +184,10 @@ Future<List<String>> fetchStopPlacesIdsByCoords(String latitude, String longitud
   else {
     return ["Request error: ${response.statusCode.toString()}"];
   }
+}
+
+void getRouteEntities(text) async {
+  String requestURL = "localhost:8000/recognize?$text";
+  final response = http.post(Uri.parse(requestURL));
+  print(response);
 }

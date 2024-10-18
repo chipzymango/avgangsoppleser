@@ -1,14 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:intl/number_symbols_data.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'apiservice.dart';
 import 'format_time.dart';
+import 'package:nlp/nlp.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:location/location.dart';
+import 'query_recognition.dart';
 
-String testQuery = "Når kommer 4b romsås";
+String testQuery = "Når er det bussen mot ski næringspark kommer";
 
 Map <String, String> correctionMap = {
   "årsbråten": "åsbråten",
+  "femmeren": "5",
+  "fireren": "4",
+  "ferien": "4", // hvis den tar opp "ferien" istenenfor "fireren"
+  "treeren": "3",
+  "toeren": "2",
+  "maurstuen": "majorstuen",
+  "vestlig": "vestli",
+  "vestlige": "vestli",
+  "fyra": "4",
+  "när": "når"
 };
 
 void main() {
@@ -42,12 +54,10 @@ class _SpeechScreenState extends State<SpeechScreen> {
   late stt.SpeechToText _speech;
   bool _isListening = false;
   String _text = testQuery;
-  late bool useLocationData;
-  late String latitude;
-  late String longitude;
 
   final FlutterTts _flutterTts = FlutterTts();
   Map? _currentVoice;
+  Location location = Location();
 
 
   @override
@@ -56,16 +66,13 @@ class _SpeechScreenState extends State<SpeechScreen> {
     super.initState();
     _speech = stt.SpeechToText(); 
     initTTS();
-<<<<<<< HEAD
-=======
     requestLocation();
   }
-
-
 
   Future<LocationData?> requestLocation() async {
     bool locationServiceEnabled;
     PermissionStatus permissionGranted;
+    LocationData _locationData;
 
     // enable location services
     locationServiceEnabled = await location.serviceEnabled();
@@ -89,7 +96,6 @@ class _SpeechScreenState extends State<SpeechScreen> {
 
     print("Permissions have been granted, getting location data...");
     return await location.getLocation(); 
->>>>>>> 1adb33f (utilizes location data)
   }
 
   void initTTS() {
@@ -151,23 +157,11 @@ class _SpeechScreenState extends State<SpeechScreen> {
             
           ),
           Expanded(
-<<<<<<< HEAD
             child: Text(
               _text, 
-              style: TextStyle(
+              style: const TextStyle(
                 fontWeight: FontWeight.w700
                 )
-=======
-            child: Container(
-              padding: const EdgeInsets.all(25.0),
-              child: Text(
-                _text, 
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 20.0
-                  )
-              ),
->>>>>>> 1adb33f (utilizes location data)
             )
           ),
 
@@ -180,8 +174,6 @@ class _SpeechScreenState extends State<SpeechScreen> {
               backgroundColor: Colors.green,
               shape: const CircleBorder(),
               child: Icon(_isListening ? Icons.mic : Icons.mic_none, size: 30),
-              
-              
             ),
           ),
       ])
@@ -190,38 +182,13 @@ class _SpeechScreenState extends State<SpeechScreen> {
 
   // this is to be called when microphone button is pressed
   void _listen() async {
-<<<<<<< HEAD
     if (!_isListening) { 
       bool available = await _speech.initialize( 
-=======
-    if (!_isListening) {
-      // handle getting the user location
-      LocationData? currentLocation = await requestLocation();
-      if (currentLocation == null) {
-        // couldn't get location data
-        useLocationData = false;
-        setState(() => _text = "Kunne ikke hente posisjon. Sørg for at posisjonstjenester er aktivert og at de nødvendige tillatelsene er gitt.");
-        _flutterTts.speak(_text);
-        return;
-      }
-      else {
-        useLocationData = true;
-        latitude = "59.9453713";//currentLocation.toString().split(",")[0].split(" ")[1];
-        longitude = "10.8459554";//currentLocation.toString().split(",")[1].split(": ")[1].split(">")[0];
-      }
-
-      // handle speech services
-      bool speechAvailable = await _speech.initialize( 
->>>>>>> 1adb33f (utilizes location data)
         onStatus: (val) => print('onStatus:$val'),
         onError: (val) => print('onStatus: $val'),
       ); // waiting for initialization of speech recognition services
 
-<<<<<<< HEAD
       if (available) {
-=======
-      if (speechAvailable) {
->>>>>>> 1adb33f (utilizes location data)
         setState(() => _isListening = true);
         _flutterTts.stop();
         _speech.listen(
@@ -233,14 +200,13 @@ class _SpeechScreenState extends State<SpeechScreen> {
     }
     else {
       setState(() => _isListening = false);
-      _handleSpeech(_text);
+      handleSpeech(_text);
       _speech.stop();
     }
   }
 
-  Future<void> getStopPlaceInfo(String stopPlaceName, {String? routeNumber, String? routeName}) async {
-    String stopPlaceId = await fetchStopPlaceId(stopPlaceName);
-    
+  Future<void> updateStopPlace(String stopPlace, {String? routeNumber, String? routeName}) async {
+    String stopPlaceId = await fetchStopPlaceId(stopPlace);
     Map<String, String?> stopPlaceProperties = await getStopPlaceProperties(stopPlaceId, routeNumber: routeNumber, routeName: routeName);
     if (stopPlaceProperties.keys.first == "Error") {
       setState(() => _text = "${stopPlaceProperties.values.first}");
@@ -248,167 +214,133 @@ class _SpeechScreenState extends State<SpeechScreen> {
       
     }
     else {
-      if (routeNumber != null &&routeName != null) {
-        String response = "Nærmeste ankomst av rute $routeNumber mot $routeName på ${stopPlaceProperties["stopPlaceName"]} er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
+      if (routeNumber != null && routeName != null) {
+        String response = "Nærmeste ankomst av rute $routeNumber mot $routeName er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
         setState(() {
           _text = response;
         });
-        _flutterTts.speak("Nærmeste ankomst er. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
+        _flutterTts.speak("Nærmeste ankomst er om. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
       }
       else if (routeNumber != null) {
-        String response = "Nærmeste ankomst av rute $routeNumber på ${stopPlaceProperties["stopPlaceName"]}  er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
+        String response = "Nærmeste ankomst av rute $routeNumber er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
         setState(() {
           _text = response;
         });
-        _flutterTts.speak("Nærmeste ankomst er. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
+        _flutterTts.speak("Nærmeste ankomst er om. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
       }
       else if (routeName != null) {
-        String response = "Nærmeste ankomst av ruten mot $routeName på ${stopPlaceProperties["stopPlaceName"]}  er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
+        String response = "Nærmeste ankomst av ruten mot $routeName er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
         setState(() {
           _text = response;
         });
-        _flutterTts.speak("Nærmeste ankomst er. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
+        _flutterTts.speak("Nærmeste ankomst er om. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
       }
       else {
-        String response = "Nærmeste ankomst på ${stopPlaceProperties["stopPlaceName"]}  er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
+        String response = "Nærmeste ankomst er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
         setState(() {
           _text = response;
         });
-        _flutterTts.speak("Nærmeste ankomst er. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
+        _flutterTts.speak("Nærmeste ankomst er om. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
       }
     }
   }
 
-  void checkNearbyStopPlaces(lat, lon, {String? routeNumber, String? routeName}) async {
-    late bool foundResult;
-    List<String> nearbyStopPlaceIds = await fetchStopPlacesIdsByCoords(lat, lon);
-    for (String stopPlaceId in nearbyStopPlaceIds) {
-      
-      Map<String, String?> stopPlaceProperties = await getStopPlaceProperties(stopPlaceId, routeNumber: routeNumber, routeName: routeName);
+  void checkWithRegex(text) {
+    final routeNumberPattern = RegExp(r'\b\d{1,3}[A-Za-z]?\b');
+    final stopPlacePattern = RegExp(r'\b(?:stopp|holdeplass|stasjon|ved|på|til|i)\s+([\wæøåÆØÅ\s]+)', caseSensitive: false);
+    final onlyRouteNamePattern = RegExp(r'kommer\s+([\wæøåÆØÅ\s]+?)\s*(?:på|til|ved|i|$)', caseSensitive: false);
+    final routeNumberAndNamePattern = RegExp(r'(\d{1,3}[A-Za-z]?)\s+([\wæøåÆØÅ\s]+?)(?:\s+(på|til|ved|i|$))', caseSensitive: false);
 
-      if (stopPlaceProperties.keys.first == "Error") {
-        foundResult = false;
-        continue;
-        
-      }
+    final routeNumberMatch = routeNumberPattern.firstMatch(text);
+    final stopPlaceMatch = stopPlacePattern.firstMatch(text);
+    final routeNameMatch = onlyRouteNamePattern.firstMatch(text);
+    final routeNumberAndNamePatternMatch = routeNumberAndNamePattern.firstMatch(text);
+
+    if (stopPlaceMatch != null) {
+      String stopPlace = stopPlaceMatch.group(1)!.trim();
+      if (routeNumberAndNamePatternMatch != null) {
+        String routeNumber = routeNumberAndNamePatternMatch.group(1)!;
+        String routeName = routeNumberAndNamePatternMatch.group(2)!.trim();
+        print("Route number: $routeNumber");
+
+        updateStopPlace(stopPlace, routeNumber: routeNumber, routeName: routeName);
+      } 
+      else if (routeNumberMatch != null) {
+        String routeNumber = routeNumberMatch.group(0)!;
+        updateStopPlace(stopPlace, routeNumber: routeNumber);
+        print("Route number: $routeNumber");
+      } 
+      else if (routeNameMatch != null) {
+        String routeName = routeNameMatch.group(1)!.trim();
+        updateStopPlace(stopPlace, routeName: routeName);
+      } 
       else {
-        if (routeNumber != null && routeName != null) {
-          foundResult = true;
-          String response = "Nærmeste ankomst av rute $routeNumber mot $routeName på ${stopPlaceProperties["stopPlaceName"]} er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
-          setState(() {
-            _text = response;
-          });
-          _flutterTts.speak("Nærmeste ankomst er. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
-          break;
-        }
-        else if (routeNumber != null) {
-          foundResult = true;
-          String response = "Nærmeste ankomst av rute $routeNumber er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
-          setState(() {
-            _text = response;
-          });
-          _flutterTts.speak("Nærmeste ankomst er. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
-          break;
-        }
-        else if (routeName != null) {
-          foundResult = true;
-          String response = "Nærmeste ankomst av ruten mot $routeName er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
-          setState(() {
-            _text = response;
-          });
-          _flutterTts.speak("Nærmeste ankomst er. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
-          break;
-        }
-        else {
-          foundResult = true;
-          String response = "Nærmeste ankomst er ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}";
-          setState(() {
-            _text = response;
-          });
-          _flutterTts.speak("Nærmeste ankomst er. ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
-          break;
-        }
+        updateStopPlace(stopPlace);
       }
-    }
-
-    if (foundResult == false) {
-      String response = "Fant ingen slik rute i nære stoppesteder.";
+    } else {
       setState(() {
-            _text = response;
+        _text = "Du har ikke nevnt noe stoppested. Hvilken holdeplass / stasjon skal ruten ankomme?";
       });
-      _flutterTts.speak("Kunne ikke finne noen stoppesteder i nærheten");
+      _flutterTts.speak("Du har ikke nevnt navnet på noe stoppested");
     }
   }
 
-  void _handleSpeech(String text) async {
-  LocationData? currentLocation = await requestLocation();
+  void handleSpeech(String text) async {
+    Map<String, dynamic> entities = await findTransitEntities(text);
+    String detectedRouteNumber = (entities["recognized_data"]["data"]["route_number"]).toString();
+    String detectedRouteName = entities["recognized_data"]["data"]["route_name"];
+    String detectedStopPlace = entities["recognized_data"]["data"]["stop_place"];
+    print("Route Number: '$detectedRouteNumber' \nRoute Name: '$detectedRouteName' \nStop Place: '$detectedStopPlace'");
 
-  final routeNumberPattern = RegExp(r'\b\d{1,3}[A-Za-z]?\b');
-  final stopPlacePattern = RegExp(r'\b(?:stopp|holdeplass|stasjon|ved|på|til|i)\s+([\wæøåÆØÅ\s]+)', caseSensitive: false);
-  final onlyRouteNamePattern = RegExp(r'(?:kommer|går)\s+(?:til|mot|på|ved|i|forbi)?\s*([\wæøåÆØÅ\s]+)', caseSensitive: false);
-  final routeNumberAndNamePattern = RegExp(r'(\d{1,3}[A-Za-z]?)\s+(?!bussen|trikken|toget)([\wæøåÆØÅ\s]+)', caseSensitive: false);
-  final routeNameAndNumberPattern = RegExp(r'(?:kommer|ankommer|går)\s+([\wæøåÆØÅ\s]+)?\s*(?:til|mot|på|i|ved|forbi)?\s*(\d{1,3}[A-Za-z]?)', caseSensitive: false);
-
-  final routeNumberMatch = routeNumberPattern.firstMatch(text);
-  final stopPlaceMatch = stopPlacePattern.firstMatch(text);
-  final routeNameMatch = onlyRouteNamePattern.firstMatch(text);
-  final routeNumberAndNamePatternMatch = routeNumberAndNamePattern.firstMatch(text);
-  final routeNameAndNumberPatternMatch = routeNameAndNumberPattern.firstMatch(text);
-
-  if (stopPlaceMatch != null) {
-    String stopPlaceName = stopPlaceMatch.group(1)!.trim();
-
-    if (routeNumberAndNamePatternMatch != null) {
-      String routeNumber = routeNumberAndNamePatternMatch.group(1)!;
-      String routeName = routeNumberAndNamePatternMatch.group(2)!.trim();
-
-
-      getStopPlaceInfo(stopPlaceName, routeNumber: routeNumber, routeName: routeName);
-    } else if (routeNameAndNumberPatternMatch != null) {
-      String routeName = routeNameAndNumberPatternMatch.group(1)!.trim();
-      String routeNumber = routeNameAndNumberPatternMatch.group(2)!.trim();
-
-
-      getStopPlaceInfo(stopPlaceName, routeNumber: routeNumber, routeName: routeName);
-    } else if (routeNumberMatch != null) {
-      String routeNumber = routeNumberMatch.group(0)!;
-      getStopPlaceInfo(stopPlaceName, routeNumber: routeNumber);
-    } else if (routeNameMatch != null) {
-      String routeName = routeNameMatch.group(1)!.trim();
-      getStopPlaceInfo(stopPlaceName, routeName: routeName);
-    } else {
-      getStopPlaceInfo(stopPlaceName);
+    // Map<String, String?> stopPlaceProperties = await getStopPlaceProperties(await fetchStopPlaceId(detectedStopPlace), routeNumber: detectedRouteNumber, routeName: detectedRouteName);
+    // if (stopPlaceProperties.keys.first == "Error") {
+    //   setState(() => _text = "${stopPlaceProperties.values.first}");
+    //   print("Could not find any route with the queried route number and name");
+    // }
+    // use location data if stop place was not mentioned
+    if (detectedStopPlace == "undefined") {
+      LocationData? location = await requestLocation();
+      // null check in case location was declined
+      if (location != null) {
+        String lat = "59.719344";
+        String long = "10.833024";
+        List<String> nearbyStopPlaceIds = await fetchStopPlacesIdsByCoords(lat, long);
+        // check for the queried route number or route name in nearby stop places
+        for (String stopPlaceId in nearbyStopPlaceIds) {
+          Map<String, String?> stopPlaceProperties = await getStopPlaceProperties(stopPlaceId);
+          print(stopPlaceId);
+          if (detectedRouteNumber != "0" && detectedRouteName != "undefined") {
+            stopPlaceProperties = await getStopPlaceProperties(stopPlaceId, routeNumber: detectedRouteNumber, routeName: detectedRouteName);
+            print("Route name and route number is found");
+          }
+          else if (detectedRouteNumber != "0") {
+            stopPlaceProperties = await getStopPlaceProperties(stopPlaceId, routeNumber: detectedRouteNumber);
+            print("Route number is found");
+          }
+          else if (detectedRouteName != "undefined") {
+            stopPlaceProperties = await getStopPlaceProperties(stopPlaceId, routeName: detectedRouteName);
+            print("Route name is found");
+          }
+          else {
+            print("route name and number was not found.");
+          }
+          
+          // if route name was found in this nearby stop place
+          if (stopPlaceProperties.keys.first != "Error") {
+            print("Stop place with the queried route name / number was found!: ${stopPlaceProperties["stopPlaceName"]}");
+            print("Nearest arrival time: ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
+            break;
+          }
+        }
+      }
     }
-  } else if (useLocationData) {
-    latitude = "59.9453713"; // Current location latitude (replace with actual value)
-    longitude = "10.8459554"; // Current location longitude (replace with actual value)
-    if (routeNumberAndNamePatternMatch != null) {
-      String routeNumber = routeNumberAndNamePatternMatch.group(1)!;
-      String routeName = routeNumberAndNamePatternMatch.group(2)!.trim();
-      checkNearbyStopPlaces(latitude, longitude, routeNumber: routeNumber, routeName: routeName);
 
-    } else if (routeNameAndNumberPatternMatch != null) {
-      String routeName = routeNameAndNumberPatternMatch.group(1)!.trim();
-      String routeNumber = routeNameAndNumberPatternMatch.group(2)!;
-      checkNearbyStopPlaces(latitude, longitude, routeNumber: routeNumber, routeName: routeName);
-
-    } else if (routeNumberMatch != null) {
-      String routeNumber = routeNumberMatch.group(0)!;
-      checkNearbyStopPlaces(latitude, longitude, routeNumber: routeNumber);
-
-    } else if (routeNameMatch != null) {
-      String routeName = routeNameMatch.group(1)!.trim();
-      checkNearbyStopPlaces(latitude, longitude, routeName: routeName);
-
-    } else {
-      checkNearbyStopPlaces(latitude, longitude);
+    else {
+      print("Stop place query found, not using location data!.");
+      Map<String, String?> stopPlaceProperties = await getStopPlaceProperties(await fetchStopPlaceId(detectedStopPlace), routeNumber: detectedRouteNumber, routeName: detectedRouteName);
+      print(stopPlaceProperties);
+      print("${stopPlaceProperties["stopPlaceName"]}: ${formatTimeToMins(stopPlaceProperties["nearestArrivalTime"])}");
     }
-  } else {
-    setState(() {
-      _text = "Posisjondata er ikke aktivert så stoppested må nevnes. Hvilken holdeplass / stasjon skal ruten ankomme?";
-    });
-    _flutterTts.speak("Du har ikke nevnt navnet på noe stoppested");
+    checkWithRegex(text);
   }
-}
-
 }
