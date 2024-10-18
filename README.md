@@ -1,4 +1,3 @@
-# Ankomst-oppleseren
+# avgangsoppleser
 
-An app where one uses the microphone to find out when the bus arrives on a stop place.
-
+App where one uses the microphone to find out when the bus or the tram arrives on a certain stop place.

@@ -17,7 +17,7 @@ String formatTimeToMins(String? dateTimeObject) {
     return "om ${differenceInMins.toString()} minutter";
   }
   else {
-    return "klokken ${time.substring(0,time.length - 3)}";
+    return "kl. ${time.substring(0,time.length - 3)}";
   }
   // no i won't do a fourth else statement which checks how many days there are left, screw that
 }
